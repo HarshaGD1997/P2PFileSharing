@@ -1,0 +1,22 @@
+@P2PFileSharing_HostAddress = http://localhost:5117
+
+
+
+### Get All Files
+GET {{P2PFileSharing_HostAddress}}/api/files
+Accept: application/json
+
+###
+
+### Upload File
+POST {{P2PFileSharing_HostAddress}}/api/files
+Content-Type: multipart/form-data
+
+# Specify the file path relative to the .http file
+[file]@/path/to/your/file.txt
+
+###
+
+### Download File
+GET {{P2PFileSharing_HostAddress}}/api/files/1
+Accept: application/octet-stream
