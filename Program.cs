@@ -14,6 +14,28 @@ using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load configuration from appsettings.json and environment-specific files
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddUserSecrets<Program>();
+}
+
+// Manually construct the connection string using environment variables
+var azureServer = Environment.GetEnvironmentVariable("AZURE_SERVER");
+var azureUsername = Environment.GetEnvironmentVariable("AZURE_USERNAME");
+var azurePassword = Environment.GetEnvironmentVariable("AZURE_PASSWORD");
+
+var connectionString = $"Server=tcp:{azureServer},1433;Initial Catalog=P2PFileSharing;User Id={azureUsername};Password={azurePassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+
+// Print the connection string for debugging purposes
+Console.WriteLine(connectionString);
+
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -26,7 +48,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 // Add DbContext configuration with retry on failure
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+    options.UseSqlServer(connectionString,
     sqlServerOptionsAction: sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure(
@@ -100,7 +122,13 @@ app.MapGet("/api/files/{id}", async (int id, ApplicationDbContext dbContext) =>
     }
 
     var filePath = fileMetadata.FilePath;
-    var fileBytes = await File.ReadAllBytesAsync(filePath);
+
+    if (!System.IO.File.Exists(filePath))
+    {
+        return Results.NotFound($"File not found: {filePath}");
+    }
+
+    var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
     return Results.File(fileBytes, "application/octet-stream", fileMetadata.FileName);
 })
 .WithName("DownloadFile");
