@@ -112,7 +112,7 @@ app.MapPost("/api/files", async (HttpRequest request, ApplicationDbContext dbCon
 })
 .WithName("UploadFile");
 
-// Endpoint to download a file by ID
+// Endpoint to download a file by ID...
 app.MapGet("/api/files/{id}", async (int id, ApplicationDbContext dbContext) =>
 {
     var fileMetadata = await dbContext.Files.FindAsync(id);
